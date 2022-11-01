@@ -30,7 +30,7 @@
 # number for each one.  You will need to
 # open up this port on your firewall.
 ;port 1194
-proto {{ .Proto }}
+port {{ .Port }}
 
 # TCP or UDP server?
 ;proto tcp
@@ -77,9 +77,12 @@ dev tun
 # Any X509 key management system can be used.
 # OpenVPN can also use a PKCS #12 formatted key file
 # (see "pkcs12" directive in man page).
-ca ca.crt
-cert server.crt
-key server.key  # This file should be kept secret
+#ca ca.crt
+#cert server.crt
+#key server.key  # This file should be kept secret
+ca {{ .Ca }}
+cert {{ .Cert }}
+key {{ .Key }}
 
 # Diffie hellman parameters.
 # Generate your own with:
