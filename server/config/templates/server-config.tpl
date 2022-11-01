@@ -1,13 +1,13 @@
 #################################################
-# OpenVPN 2.0 config file for                   #
+# Sample OpenVPN 2.0 config file for            #
 # multi-client server.                          #
 #                                               #
 # This file is for the server side              #
-# of a many-clients one-server                  #
+# of a many-clients <-> one-server              #
 # OpenVPN configuration.                        #
 #                                               #
 # OpenVPN also supports                         #
-# single-machine  single-machine                #
+# single-machine <-> single-machine             #
 # configurations (See the Examples page         #
 # on the web site for more info).               #
 #                                               #
@@ -20,8 +20,6 @@
 # Comments are preceded with '#' or ';'         #
 #################################################
 
-management {{ .Management }}
-
 # Which local IP address should OpenVPN
 # listen on? (optional)
 ;local a.b.c.d
@@ -31,9 +29,12 @@ management {{ .Management }}
 # on the same machine, use a different port
 # number for each one.  You will need to
 # open up this port on your firewall.
-port {{ .Port }}
+;port 1194
+proto {{ .Proto }}
 
 # TCP or UDP server?
+;proto tcp
+;proto udp
 proto {{ .Proto }}
 
 # "dev tun" will create a routed IP tunnel,
@@ -50,6 +51,7 @@ proto {{ .Proto }}
 # On most systems, the VPN will not function
 # unless you partially or fully disable
 # the firewall for the TUN/TAP interface.
+;dev tap
 dev tun
 
 # Windows needs the TAP-Win32 adapter name
@@ -79,16 +81,18 @@ ca ca.crt
 cert server.crt
 key server.key  # This file should be kept secret
 
-cipher {{ .Cipher }}
-keysize {{ .Keysize }}
-auth {{ .Auth }}
-
 # Diffie hellman parameters.
 # Generate your own with:
-#   openssl dhparam -out dh1024.pem 1024
-# Substitute 2048 for 1024 if you are using
-# 2048 bit keys.
-dh dh2048.pem
+#   openssl dhparam -out dh2048.pem 2048
+;dh dh2048.pem
+dh {{ .Dh }}
+
+# Network topology
+# Should be subnet (addressing via IP)
+# unless Windows clients v2.0.9 and lower have to
+# be supported (then net30, i.e. a /30 per client)
+# Defaults to net30 (not recommended)
+;topology subnet
 
 # Configure server mode and supply a VPN subnet
 # for OpenVPN to draw client addresses from.
@@ -99,11 +103,12 @@ dh dh2048.pem
 # ethernet bridging. See the man page for more info.
 server 10.8.0.0 255.255.255.0
 
-# Maintain a record of client  virtual IP address
+# Maintain a record of client <-> virtual IP address
 # associations in this file.  If OpenVPN goes down or
 # is restarted, reconnecting clients can be assigned
 # the same virtual IP address from the pool that was
 # previously assigned.
+;ifconfig-pool-persist ipp.txt
 ifconfig-pool-persist {{ .IfconfigPoolPersist }}
 
 # Configure server mode for ethernet bridging.
@@ -114,7 +119,7 @@ ifconfig-pool-persist {{ .IfconfigPoolPersist }}
 # assume 10.8.0.4/255.255.255.0.  Finally we
 # must set aside an IP range in this subnet
 # (start=10.8.0.50 end=10.8.0.100) to allocate
-# to connecting clients. Leave this line commented
+# to connecting clients.  Leave this line commented
 # out unless you are ethernet bridging.
 ;server-bridge 10.8.0.4 255.255.255.0 10.8.0.50 10.8.0.100
 
@@ -122,7 +127,7 @@ ifconfig-pool-persist {{ .IfconfigPoolPersist }}
 # using a DHCP-proxy, where clients talk
 # to the OpenVPN server-side DHCP server
 # to receive their IP address allocation
-# and DNS server addresses. You must first use
+# and DNS server addresses.  You must first use
 # your OS's bridging capability to bridge the TAP
 # interface with the ethernet NIC interface.
 # Note: this mode only works on clients (such as
@@ -132,7 +137,7 @@ ifconfig-pool-persist {{ .IfconfigPoolPersist }}
 
 # Push routes to the client to allow it
 # to reach other private subnets behind
-# the server. Remember that these
+# the server.  Remember that these
 # private subnets will also need
 # to know to route the OpenVPN client
 # address pool (10.8.0.0/255.255.255.0)
@@ -189,7 +194,7 @@ push "route 10.8.0.0 255.255.255.0"
 # (The OpenVPN server machine may need to NAT
 # or bridge the TUN/TAP interface to the internet
 # in order for this to work properly).
-# push "redirect-gateway def1 bypass-dhcp"
+;push "redirect-gateway def1 bypass-dhcp"
 
 # Certain Windows-specific network settings
 # can be pushed to clients, such as DNS
@@ -197,8 +202,8 @@ push "route 10.8.0.0 255.255.255.0"
 # http://openvpn.net/faq.html#dhcpcaveats
 # The addresses below refer to the public
 # DNS servers provided by opendns.com.
-#push "dhcp-option DNS 208.67.222.222"
-#push "dhcp-option DNS 208.67.220.220"
+;push "dhcp-option DNS 208.67.222.222"
+;push "dhcp-option DNS 208.67.220.220"
 push "dhcp-option DNS 8.8.8.8"
 push "dhcp-option DNS 8.8.4.4"
 
@@ -230,6 +235,7 @@ push "dhcp-option DNS 8.8.4.4"
 # Ping every 10 seconds, assume that remote
 # peer is down if no ping received during
 # a 120 second time period.
+;keepalive 10 120
 keepalive {{ .Keepalive }}
 
 # For extra security beyond that provided
@@ -237,28 +243,40 @@ keepalive {{ .Keepalive }}
 # to help block DoS attacks and UDP port flooding.
 #
 # Generate with:
-#   openvpn --genkey --secret ta.key
+#   openvpn --genkey tls-auth ta.key
 #
 # The server and each client must have
 # a copy of this key.
 # The second parameter should be '0'
 # on the server and '1' on the clients.
 ;tls-auth ta.key 0 # This file is secret
+tls-auth {{ .TaKey }} 0
 
 # Select a cryptographic cipher.
 # This config item must be copied to
 # the client config file as well.
-;cipher BF-CBC        # Blowfish (default)
-;cipher AES-128-CBC   # AES
-;cipher DES-EDE3-CBC  # Triple-DES
+# Note that v2.4 client/server will automatically
+# negotiate AES-256-GCM in TLS mode.
+# See also the ncp-cipher option in the manpage
+;cipher AES-256-CBC
+cipher {{ .Cipher }}
+auth {{ .Auth }}
 
-# Enable compression on the VPN link.
+# Enable compression on the VPN link and push the
+# option to the client (v2.4+ only, for earlier
+# versions see below)
+;compress lz4-v2
+;push "compress lz4-v2"
+
+# For compression compatible with older clients use comp-lzo
 # If you enable it here, you must also
 # enable it in the client config file.
+;comp-lzo
 comp-lzo
 
 # The maximum number of concurrently connected
 # clients we want to allow.
+;max-clients 100
 max-clients {{ .MaxClients }}
 
 # It's a good idea to reduce the OpenVPN
@@ -267,7 +285,7 @@ max-clients {{ .MaxClients }}
 # You can uncomment this out on
 # non-Windows systems.
 ;user nobody
-;group nogroup
+;group nobody
 
 # The persist options will try to avoid
 # accessing certain resources on restart
@@ -288,8 +306,9 @@ status openvpn-status.log
 # "log" will truncate the log file on OpenVPN startup,
 # while "log-append" will append to it.  Use one
 # or the other (but not both).
-log         openvpn.log
+;log         openvpn.log
 ;log-append  openvpn.log
+log-append openvpn.log
 
 # Set the appropriate level of log
 # file verbosity.
@@ -304,3 +323,9 @@ verb 3
 # sequential messages of the same message
 # category will be output to the log.
 ;mute 20
+
+# Notify the client that when the server restarts so it
+# can automatically reconnect.
+explicit-exit-notify 1
+
+management {{ .Management }}
