@@ -327,8 +327,4 @@ verb 3
 # category will be output to the log.
 ;mute 20
 
-# Notify the client that when the server restarts so it
-# can automatically reconnect.
-explicit-exit-notify 1
-
 management {{ .Management }}
