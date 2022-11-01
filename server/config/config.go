@@ -19,7 +19,7 @@ var defaultConfig = Config{
 	TaKey:               "ta.key",
 	Cipher:              "AES-256-CBC",
 	Auth:                "SHA256",
-	MaxClients:          "100",
+	MaxClients:          100,
 	Management:          "0.0.0.0 2080",
 }
 
