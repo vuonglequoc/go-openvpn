@@ -127,7 +127,6 @@ auth {{ .Auth }}
 # Don't enable this unless it is also
 # enabled in the server config file.
 #comp-lzo
-comp-lzo
 
 # Set log file verbosity.
 verb 3
@@ -137,3 +136,5 @@ verb 3
 
 tls-client
 lport 0
+
+{{ .ExtraClientOptions }}

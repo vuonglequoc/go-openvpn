@@ -207,8 +207,8 @@ push "route 10.8.0.0 255.255.255.0"
 # DNS servers provided by opendns.com.
 ;push "dhcp-option DNS 208.67.222.222"
 ;push "dhcp-option DNS 208.67.220.220"
-push "dhcp-option DNS 8.8.8.8"
-push "dhcp-option DNS 8.8.4.4"
+push "dhcp-option DNS {{ .DNSServerOne }}"
+push "dhcp-option DNS {{ .DNSServerTwo }}"
 
 # Uncomment this directive to allow different
 # clients to be able to "see" each other.
@@ -275,7 +275,6 @@ auth {{ .Auth }}
 # If you enable it here, you must also
 # enable it in the client config file.
 ;comp-lzo
-comp-lzo
 
 # The maximum number of concurrently connected
 # clients we want to allow.
@@ -328,3 +327,5 @@ verb 3
 ;mute 20
 
 management {{ .Management }}
+
+{{ .ExtraServerOptions }}
